@@ -12,7 +12,7 @@ const User = require('../models/User');
 // @access  Public
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, studentId } = req.body;
+    const { name, email, password, role, studentId, department } = req.body;
 
     // Validate required fields
     if (!name || !email || !password || !role) {
@@ -22,6 +22,11 @@ router.post('/register', async (req, res) => {
     // Check if student needs studentId
     if (role === 'student' && !studentId) {
       return res.status(400).json({ message: 'Student ID is required for students' });
+    }
+
+    // Check if admin needs department
+    if (role === 'admin' && !department) {
+      return res.status(400).json({ message: 'Department is required for admins' });
     }
 
     // Check if user already exists
@@ -40,6 +45,7 @@ router.post('/register', async (req, res) => {
       email,
       password: hashedPassword,
       role,
+      department: role === 'admin' ? department : undefined,
       studentId: role === 'student' ? studentId : undefined
     });
 
@@ -47,7 +53,7 @@ router.post('/register', async (req, res) => {
 
     // Create JWT token
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { userId: user._id, role: user.role, department: user.department },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -59,7 +65,8 @@ router.post('/register', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        department: user.department
       }
     });
   } catch (error) {
@@ -94,7 +101,7 @@ router.post('/login', async (req, res) => {
 
     // Create JWT token
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { userId: user._id, role: user.role, department: user.department },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -106,12 +113,57 @@ router.post('/login', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        department: user.department
       }
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error during login' });
+  }
+});
+
+// @route   POST /api/auth/google-mock
+// @desc    Simulate Google Login (Demo Only)
+// @access  Public
+router.post('/google-mock', async (req, res) => {
+  try {
+    const { email, name } = req.body;
+    let user = await User.findOne({ email });
+
+    // If user doesn't exist, create a new Student
+    if (!user) {
+      user = new User({
+        name: name || 'Google User',
+        email,
+        password: 'google_mock_password_123', // Dummy password
+        role: 'student',
+        studentId: 'G-' + Date.now()
+      });
+      await user.save();
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { userId: user._id, role: user.role, department: user.department },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error during mock login' });
   }
 });
 

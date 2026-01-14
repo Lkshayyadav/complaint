@@ -26,9 +26,13 @@ const ComplaintSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  imagePath: {
+    type: String,
+    default: ''
+  },
   status: {
     type: String,
-    enum: ['Pending', 'In Progress', 'Resolved'],
+    enum: ['Pending', 'In Progress', 'Resolved', 'Rejected'],
     default: 'Pending'
   },
   assignedTo: {
@@ -50,7 +54,7 @@ const ComplaintSchema = new mongoose.Schema({
 });
 
 // Update the updatedAt field before saving
-ComplaintSchema.pre('save', function(next) {
+ComplaintSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();
 });

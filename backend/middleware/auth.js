@@ -16,7 +16,7 @@ const authMiddleware = (req, res, next) => {
   try {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Add user info to request object
     req.user = decoded;
     next();
@@ -25,12 +25,14 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-// Middleware to check if user is admin
-const adminMiddleware = (req, res, next) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Access denied. Admin only.' });
-  }
-  next();
+// Middleware to check if user has one of the allowed roles
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ message: `Access denied. Roles allowed: ${roles.join(', ')}` });
+    }
+    next();
+  };
 };
 
-module.exports = { authMiddleware, adminMiddleware };   
+module.exports = { authMiddleware, authorize };   
